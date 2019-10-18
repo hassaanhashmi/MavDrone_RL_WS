@@ -4,7 +4,7 @@ The required repo structure (package level) is given below:
 
 ```
 MavDrone_RL_WS
-├── src
+└── src
   └── mavdrone_rl
   └── openai_ros
   └── Firmware
