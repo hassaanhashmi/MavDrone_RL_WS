@@ -1,0 +1,6 @@
+<launch>
+    <!-- This version uses the openai_ros environments -->
+    <rosparam command="load" file="$(find mavros_rl)/config/mavros_openai_qlearn_params.yaml" />
+    <!-- Launch the training system -->
+    <node pkg="mavros_rl" name="mavros_goto_qlearn" type="start_qlearning.py" output="screen"/>
+</launch>

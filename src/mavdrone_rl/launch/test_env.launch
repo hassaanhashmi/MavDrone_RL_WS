@@ -1,0 +1,14 @@
+<launch>
+    <arg name="gui" default="true"/>
+    <arg name="args" default=""/>
+    <!-- This version uses the openai_ros environments -->
+    <rosparam command="load" file="$(find mavdrone_rl)/config/mav_drone_openai_qlearn_params_v2.yaml" />
+    <!-- Launch the training system -->
+    <!-- <include file="$(find mavdrone_rl)/launch/env.launch" /> -->
+    <node pkg="mavdrone_rl" name="mavdrone_env_test" type="test_env_1.py" output="screen"/>
+
+    <!-- start gui -->
+    <!-- <group if="$(arg gui)">
+    <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
+  </group> -->
+</launch>
