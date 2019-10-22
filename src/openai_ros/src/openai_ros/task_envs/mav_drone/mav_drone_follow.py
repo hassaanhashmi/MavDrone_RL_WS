@@ -200,9 +200,9 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
                 self._rate.sleep()
             #rospy.sleep(10)
             #Arm vehicle
-            if self.setArmRequest(True,5):
-                rospy.logerr("Arm Request SUCCESSFUL!!!")
-                #self._action_server.set_aborted()
+             if self.setArmRequest(True,5):
+                 rospy.logerr("Arm Request SUCCESSFUL!!!")
+                 #self._action_server.set_aborted()
             else:
                 rospy.logerr("Arm Request FAILED!!!")
             

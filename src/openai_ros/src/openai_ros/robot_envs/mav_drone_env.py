@@ -46,8 +46,6 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
 
         Actuations for RL action space (by topic list):
         * /cmd_vel: Move the Drone Around when you have taken off.
-        * /drone/takeoff: Publish into it to take off
-        * /drone/land: Publish to make ParrotDrone Land
 
         Args:
         """
@@ -79,7 +77,7 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
         self._current_pose = PoseStamped()
         self._current_state= State()
         self._check_all_sensors_ready()
-
+       
         # We Start all the ROS related Subscribers and publishers
         rospy.Subscriber('mavros/state', State, callback=self._stateCb, queue_size=10)
         rospy.Subscriber('mavros/local_position/pose', PoseStamped , callback=self._poseCb, queue_size=10)
@@ -247,7 +245,12 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
 
     def ExecuteTakeoff(self, alt = 4, lat = 0, long = 0, min_p = 0, yw = 0):
         self.gazebo.unpauseSim()
+        # armService = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
+        # armService(True)
         rospy.wait_for_service('/mavros/cmd/takeoff')
+        # takeoffService = rospy.ServiceProxy('/mavros/cmd/takeoff', CommandTOL)
+        # ret=takeoffService(altitude=alt, latitude=lat, longitude=long, min_pitch=min_p, yaw=yw)
+
         try:
             takeoffService = rospy.ServiceProxy('/mavros/cmd/takeoff', CommandTOL)
             ret=takeoffService(altitude=alt, latitude=lat, longitude=long, min_pitch=min_p, yaw=yw)
@@ -264,13 +267,13 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
                     print "Service takeoff call failed: %s"%e
                 takeoffService = rospy.ServiceProxy('/mavros/cmd/takeoff', CommandTOL)
                 ret=takeoffService(altitude=alt, latitude=lat, longitude=long, min_pitch=min_p, yaw=yw)
-                    
-            #self.wait_for_height( altitude_confirm = altitude,smaller_than = False,epsilon = 0.05,update_rate=20)
+                   
+           #self.wait_for_height( altitude_confirm = altitude,smaller_than = False,epsilon = 0.05,update_rate=20)
 
         except rospy.ServiceException as ex:
-            fault(ex)
+           fault(ex)
         if not ret.success:
-            fault("Request failed. Check mavros logs. ACK:", ret.result)
+           fault("Request failed. Check mavros logs. ACK:", ret.result)
     
     def wait_for_height(self, altitude_confirm, smaller_than, epsilon = 0.05, update_rate=20):
         """

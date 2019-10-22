@@ -146,7 +146,8 @@ class RobotGazeboEnv(gym.Env):
     def _reset_sim(self):
         """Resets a simulation
         """
-        raise NotImplementedError()
+        self._reset_sim_before()
+        self._reset_sim_after()
 
     def _set_init_pose(self):
         """Sets the Robot in its init pose
