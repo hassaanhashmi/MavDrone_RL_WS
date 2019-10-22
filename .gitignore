@@ -1,6 +1,7 @@
 Firmware/
 mavros/
 mavros_moveit/
+src/mavdrone_rl/training_results
 .catkin_workspace
 build/
 devel/
