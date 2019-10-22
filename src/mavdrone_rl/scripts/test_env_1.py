@@ -47,5 +47,5 @@ if __name__ == '__main__':
         done = False
         for i in range(nsteps):
             rospy.logdebug("Episode: ", x,"step: ",i)
-            rospy.sleep(3)
+            time.sleep(3)
     env_to_wrap.close()

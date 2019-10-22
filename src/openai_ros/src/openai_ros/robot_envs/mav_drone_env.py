@@ -72,7 +72,7 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
                                              reset_world_or_sim="WORLD")
         self.gazebo.unpauseSim()
 
-        ROSLauncher(rospackage_name="mavros_moveit",
+        self.ros_launcher = ROSLauncher(rospackage_name="mavros_moveit",
                     launch_file_name="posix_sitl_2.launch", #to be edited and finalized
                     ros_ws_abspath=ros_ws_abspath)
         rospy.sleep(30)
@@ -116,6 +116,13 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
 
 # Methods needed by the RobotGazeboEnv
     # ----------------------------
+    
+    def _reset_sim(self):
+        self._reset_sim_before()
+        self.ros_launcher.restart()
+        #rospy.sleep()
+        self._reset_sim_after()
+
     def _poseCb(self, msg):
         self._current_pose = msg
 
@@ -246,14 +253,15 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
             ret=takeoffService(altitude=alt, latitude=lat, longitude=long, min_pitch=min_p, yaw=yw)
             while not ret.success:
                 print("stuck here!!!")
-                rospy.wait_for_service('/mavros/cmd/arming')
+                #rospy.wait_for_service('/mavros/cmd/arming')
                 try:
                     armService = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
                     armService(False)
-                    rospy.sleep(0.01)
+                    rospy.sleep(0.005)
                     armService(True)
+                    #ret=takeoffService(altitude=alt, latitude=lat, longitude=long, min_pitch=min_p, yaw=yw)
                 except rospy.ServiceException, e:
-                    print "Service arm call failed: %s"%e
+                    print "Service takeoff call failed: %s"%e
                 takeoffService = rospy.ServiceProxy('/mavros/cmd/takeoff', CommandTOL)
                 ret=takeoffService(altitude=alt, latitude=lat, longitude=long, min_pitch=min_p, yaw=yw)
                     
@@ -360,7 +368,9 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
                 rospy.logwarn("Vehicle arm/disarm request failed. Cannot execute actions.")
                 return False """
 
-    def setArmRequest(self, arm, dummy=1):
+    def setArmRequest(self, arm, timeout):
+        #ArmRequest routine 1
+        """ 
         while (self._current_state.armed != arm):
             try:
                 armService = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
@@ -368,8 +378,8 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
             except:
                 rospy.logwarn("Vehicle arm/disarm request failed. Cannot execute actions.")
             rospy.sleep(0.04)
-    
-    """ def setArmRequest(self, arm, timeout):
+        
+        #ArmRequest routine 2
         #arm: True to arm or False to disarm, timeout(int): seconds
         rospy.loginfo("setting FCU arm: {0}".format(arm))
         old_arm = self._current_state.armed
@@ -384,12 +394,25 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
             else:
                 try:
                     res = self._arming_client(arm)
+                    print("res is currently", res)
                     if not res.success:
                         rospy.logerr("failed to send arm command")
                 except rospy.ServiceException as e:
                     rospy.logerr(e) 
 
-            rate.sleep()"""
+            rate.sleep()
+        """
+        #ArmRequest routine 3
+        if (self._current_state.armed != arm):
+            arm_cmd = CommandBool()
+            arm_cmd._request_class().value = arm
+            if (self._arming_client(arm_cmd._request_class().value) and arm_cmd._response_class().success):
+                while (not self._current_state.armed): # Wait for arming to be complete
+                    self._rate.sleep()
+                return True
+            else:
+                rospy.logwarn("Vehicle arm/disarm request failed. Cannot execute actions.")
+                return False
 
     def get_current_pose(self):
         return self._current_pose

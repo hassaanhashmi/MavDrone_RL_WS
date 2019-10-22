@@ -48,14 +48,13 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
         assert os.path.exists(ros_ws_abspath), "The Simulation ROS Workspace path " + ros_ws_abspath + \
                                                " DOESNT exist, execute: mkdir -p " + ros_ws_abspath + \
                                                "/src;cd " + ros_ws_abspath + ";catkin_make" 
-        # Launch the px4_mavros_moveit 
+                                               
         ROSLauncher(rospackage_name="mavros_moveit",
                     launch_file_name="px4_mavros_moveit_2.launch",
                     ros_ws_abspath=ros_ws_abspath)
-                    
         self._load_params()
         # Here we will add any init functions prior to starting the MyRobotEnv
-
+        # Launch the px4_mavros_moveit 
         super(MavDroneFollowEnv, self).__init__(ros_ws_abspath)
 
         
@@ -169,7 +168,6 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
             self.cumulated_steps = 0.0
 
 
-
     def _set_init_pose(self):
         """
         Sets the Robot in its init linear and angular speeds
@@ -193,14 +191,14 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
         #raw_input("TakeOFF PRESS")
         # We TakeOff before sending any movement commands
         #Check for fcu connection
-
+        self.gazebo.unpauseSim()
         if self.get_current_state().connected:
             #Send a few setpoints before starting
             for i in (j for j in range(1,0,-1) if not rospy.is_shutdown()):
                 vel_msg = TwistStamped()
                 self._local_vel_pub.publish(vel_msg)
                 self._rate.sleep()
-            rospy.sleep(10)
+            #rospy.sleep(10)
             #Arm vehicle
             if self.setArmRequest(True,5):
                 rospy.logerr("Arm Request SUCCESSFUL!!!")

@@ -67,6 +67,7 @@ class ROSLauncher(object):
                 ">>>>>>>>>>Package found in workspace-->"+str(pkg_path))
             launch_dir = os.path.join(pkg_path, "launch")
             path_launch_file_name = os.path.join(launch_dir, launch_file_name)
+            self._path_launch_file_name = path_launch_file_name
 
             rospy.logwarn("path_launch_file_name=="+str(path_launch_file_name))
 
@@ -80,6 +81,16 @@ class ROSLauncher(object):
         else:
             assert False, "No Package Path was found for ROS apckage ==>" + \
                 str(rospackage_name)
+
+    def restart(self):
+        self.launch.shutdown()
+        #a double check before starting launch file again
+        rospy.logwarn("path_launch_file_name=="+str(self._path_launch_file_name))
+        self.uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+        roslaunch.configure_logging(self.uuid)
+        self.launch = roslaunch.parent.ROSLaunchParent(self.uuid, [self._path_launch_file_name])
+        self.launch.start()
+        
 
     def DownloadRepo(self, package_name, ros_ws_abspath):
         """

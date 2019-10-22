@@ -107,10 +107,7 @@ class RobotGazeboEnv(gym.Env):
 
     # Extension methods
     # ----------------------------
-
-    def _reset_sim(self):
-        """Resets a simulation
-        """
+    def _reset_sim_before(self):
         rospy.logdebug("RESET SIM START")
         if self.reset_controls :
             rospy.logdebug("RESET CONTROLLERS")
@@ -119,12 +116,6 @@ class RobotGazeboEnv(gym.Env):
             self._check_all_systems_ready()
             self._set_init_pose()
             self.gazebo.pauseSim()
-            self.gazebo.resetSim()
-            self.gazebo.unpauseSim()
-            self.controllers_object.reset_controllers()
-            self._check_all_systems_ready()
-            self.gazebo.pauseSim()
-
         else:
             rospy.logwarn("DONT RESET CONTROLLERS")
             self.gazebo.unpauseSim()
@@ -132,15 +123,30 @@ class RobotGazeboEnv(gym.Env):
             self._set_init_pose()
             rospy.logwarn("Set to initial pose")
             self.gazebo.pauseSim()
+    
+    def _reset_sim_after(self):
+
+        if self.reset_controls:
+            self.gazebo.resetSim()
+            self.gazebo.unpauseSim()
+            self.controllers_object.reset_controllers()
+            self._check_all_systems_ready()
+            self.gazebo.pauseSim()
+        else:
             self.gazebo.resetSim()
             rospy.logwarn("Gazebo sim reset occured")
             self.gazebo.unpauseSim()
             self._check_all_systems_ready()
             rospy.logwarn("All systems checked")
             self.gazebo.pauseSim()
-
         rospy.logdebug("RESET SIM END")
         return True
+
+
+    def _reset_sim(self):
+        """Resets a simulation
+        """
+        raise NotImplementedError()
 
     def _set_init_pose(self):
         """Sets the Robot in its init pose
