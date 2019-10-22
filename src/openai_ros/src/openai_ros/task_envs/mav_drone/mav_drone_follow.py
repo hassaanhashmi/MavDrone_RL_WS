@@ -42,6 +42,7 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
         """
         Make mavdrone learn how to navigate to get to a point
         """
+
         ros_ws_abspath = rospy.get_param("/mav_drone/ros_ws_abspath", None)
         assert ros_ws_abspath is not None, "You forgot to set ros_ws_abspath in your yaml file of your main RL script. Set ros_ws_abspath: \'YOUR/SIM_WS/PATH\'"
         assert os.path.exists(ros_ws_abspath), "The Simulation ROS Workspace path " + ros_ws_abspath + \
@@ -51,102 +52,8 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
         ROSLauncher(rospackage_name="mavros_moveit",
                     launch_file_name="px4_mavros_moveit_2.launch",
                     ros_ws_abspath=ros_ws_abspath)
-        
-        # Load Params from the desired Yaml file
-        LoadYamlFileParamsTest(rospackage_name="openai_ros",
-                               rel_path_from_package_to_file="src/openai_ros/task_envs/mav_drone/config",
-                               yaml_file_name="mav_drone_follow.yaml")
-
-        # Continuous action space
-        hv_range = rospy.get_param('/mavdrone/lxy_vel_range')
-        vv_range = rospy.get_param('/mavdrone/lz_vel_range')
-        rv_range = rospy.get_param('/mavdrone/rot_vel_range')
-        
-        self.action_space = spaces.Box(low=np.array([-hv_range, -hv_range, -vv_range, -rv_range]),\
-                                       high=np.array([hv_range, hv_range, vv_range, rv_range]),\
-                                       dtype=np.float32)
-
-        # We set the reward range, which is not compulsory but here we do it.
-        self.reward_range = (-np.inf, np.inf)
-
-        self.init_velocity_vector = TwistStamped()
-        self.init_velocity_vector.twist.linear.x = rospy.get_param(\
-            '/mavdrone/init_speed_vector/linear_x')
-        self.init_velocity_vector.twist.linear.y = rospy.get_param(\
-            '/mavdrone/init_speed_vector/linear_y')
-        self.init_velocity_vector.twist.linear.z = rospy.get_param(\
-            '/mavdrone/init_speed_vector/linear_z')
-        self.init_velocity_vector.twist.angular.x = rospy.get_param(\
-            '/mavdrone/init_speed_vector/angular_x')
-        self.init_velocity_vector.twist.angular.y = rospy.get_param(\
-            '/mavdrone/init_speed_vector/angular_y')
-        self.init_velocity_vector.twist.angular.z = rospy.get_param(\
-            '/mavdrone/init_speed_vector/angular_z')
-
-        # Get WorkSpace Cube Dimensions
-        self.work_space_x_max = rospy.get_param("/mavdrone/work_space/x_max")
-        self.work_space_x_min = rospy.get_param("/mavdrone/work_space/x_min")
-        self.work_space_y_max = rospy.get_param("/mavdrone/work_space/y_max")
-        self.work_space_y_min = rospy.get_param("/mavdrone/work_space/y_min")
-        self.work_space_z_max = rospy.get_param("/mavdrone/work_space/z_max")
-        self.work_space_z_min = rospy.get_param("/mavdrone/work_space/z_min")
-
-        # Maximum Quaternion values
-        self.max_qw = rospy.get_param("/mavdrone/max_orientation_w")
-        self.max_qx = rospy.get_param("/mavdrone/max_orientation_x")
-        self.max_qy = rospy.get_param("/mavdrone/max_orientation_y")
-        self.max_qz = rospy.get_param("/mavdrone/max_orientation_z")
-
-        # Get Desired Point to Get
-        self.desired_pose = PoseStamped()
-        self.desired_pose.pose.position.x   = rospy.get_param("/mavdrone/desired_position/x")
-        self.desired_pose.pose.position.y   = rospy.get_param("/mavdrone/desired_position/y")
-        self.desired_pose.pose.position.z   = rospy.get_param("/mavdrone/desired_position/z")
-        self.desired_pose.pose.orientation.w= rospy.get_param("/mavdrone/desired_orientation/w")
-        self.desired_pose.pose.orientation.x= rospy.get_param("/mavdrone/desired_orientation/x")
-        self.desired_pose.pose.orientation.y= rospy.get_param("/mavdrone/desired_orientation/y")
-        self.desired_pose.pose.orientation.z= rospy.get_param("/mavdrone/desired_orientation/z")
-
- 
-        self.desired_pose_epsilon = rospy.get_param(
-            "/mavdrone/desired_point_epsilon")
-        
-        self.geo_distance = rospy.get_param("/mavdrone/geodesic_distance")
-
-
-        # We place the Maximum and minimum values of the X,Y,Z,W,X,Y,Z of the pose
-
-        high = np.array([self.work_space_x_max,
-                            self.work_space_y_max,
-                            self.work_space_z_max,
-                            self.max_qw,
-                            self.max_qx,
-                            self.max_qy,
-                            self.max_qz])
-
-        low = np.array([self.work_space_x_min,
-                           self.work_space_y_min,
-                           self.work_space_z_min,
-                           -1*self.max_qw,
-                           -1*self.max_qx,
-                           -1*self.max_qy,
-                           -1*self.max_qz])
-
-        self.observation_space = spaces.Box(low, high, dtype=np.float32)
-
-        rospy.logdebug("ACTION SPACES TYPE===>"+str(self.action_space))
-        rospy.logdebug("OBSERVATION SPACES TYPE===>" +
-                       str(self.observation_space))
-
-        # Rewards
-        self.closer_to_point_reward = rospy.get_param(
-            "/mavdrone/closer_to_point_reward")
-        self.not_ending_point_reward = rospy.get_param(
-            "/mavdrone/not_ending_point_reward")
-        self.end_episode_points = rospy.get_param("/mavdrone/end_episode_points")
-
-        self.cumulated_steps = 0.0
-
+                    
+        self._load_params()
         # Here we will add any init functions prior to starting the MyRobotEnv
 
         super(MavDroneFollowEnv, self).__init__(ros_ws_abspath)
@@ -165,7 +72,101 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
         #self._control_mode = ControlMode.VELOCITY
 
 
+    def _load_params(self):
+            # Load Params from the desired Yaml file
+            LoadYamlFileParamsTest(rospackage_name="openai_ros",
+                                rel_path_from_package_to_file="src/openai_ros/task_envs/mav_drone/config",
+                                yaml_file_name="mav_drone_follow.yaml")
 
+            # Continuous action space
+            hv_range = rospy.get_param('/mavdrone/lxy_vel_range')
+            vv_range = rospy.get_param('/mavdrone/lz_vel_range')
+            rv_range = rospy.get_param('/mavdrone/rot_vel_range')
+            
+            self.action_space = spaces.Box(low=np.array([-hv_range, -hv_range, -vv_range, -rv_range]),\
+                                        high=np.array([hv_range, hv_range, vv_range, rv_range]),\
+                                        dtype=np.float32)
+
+            # We set the reward range, which is not compulsory but here we do it.
+            self.reward_range = (-np.inf, np.inf)
+
+            self.init_velocity_vector = TwistStamped()
+            self.init_velocity_vector.twist.linear.x = rospy.get_param(\
+                '/mavdrone/init_speed_vector/linear_x')
+            self.init_velocity_vector.twist.linear.y = rospy.get_param(\
+                '/mavdrone/init_speed_vector/linear_y')
+            self.init_velocity_vector.twist.linear.z = rospy.get_param(\
+                '/mavdrone/init_speed_vector/linear_z')
+            self.init_velocity_vector.twist.angular.x = rospy.get_param(\
+                '/mavdrone/init_speed_vector/angular_x')
+            self.init_velocity_vector.twist.angular.y = rospy.get_param(\
+                '/mavdrone/init_speed_vector/angular_y')
+            self.init_velocity_vector.twist.angular.z = rospy.get_param(\
+                '/mavdrone/init_speed_vector/angular_z')
+
+            # Get WorkSpace Cube Dimensions
+            self.work_space_x_max = rospy.get_param("/mavdrone/work_space/x_max")
+            self.work_space_x_min = rospy.get_param("/mavdrone/work_space/x_min")
+            self.work_space_y_max = rospy.get_param("/mavdrone/work_space/y_max")
+            self.work_space_y_min = rospy.get_param("/mavdrone/work_space/y_min")
+            self.work_space_z_max = rospy.get_param("/mavdrone/work_space/z_max")
+            self.work_space_z_min = rospy.get_param("/mavdrone/work_space/z_min")
+
+            # Maximum Quaternion values
+            self.max_qw = rospy.get_param("/mavdrone/max_orientation_w")
+            self.max_qx = rospy.get_param("/mavdrone/max_orientation_x")
+            self.max_qy = rospy.get_param("/mavdrone/max_orientation_y")
+            self.max_qz = rospy.get_param("/mavdrone/max_orientation_z")
+
+            # Get Desired Point to Get
+            self.desired_pose = PoseStamped()
+            self.desired_pose.pose.position.x   = rospy.get_param("/mavdrone/desired_position/x")
+            self.desired_pose.pose.position.y   = rospy.get_param("/mavdrone/desired_position/y")
+            self.desired_pose.pose.position.z   = rospy.get_param("/mavdrone/desired_position/z")
+            self.desired_pose.pose.orientation.w= rospy.get_param("/mavdrone/desired_orientation/w")
+            self.desired_pose.pose.orientation.x= rospy.get_param("/mavdrone/desired_orientation/x")
+            self.desired_pose.pose.orientation.y= rospy.get_param("/mavdrone/desired_orientation/y")
+            self.desired_pose.pose.orientation.z= rospy.get_param("/mavdrone/desired_orientation/z")
+
+    
+            self.desired_pose_epsilon = rospy.get_param(
+                "/mavdrone/desired_point_epsilon")
+            
+            self.geo_distance = rospy.get_param("/mavdrone/geodesic_distance")
+
+
+            # We place the Maximum and minimum values of the X,Y,Z,W,X,Y,Z of the pose
+
+            high = np.array([self.work_space_x_max,
+                                self.work_space_y_max,
+                                self.work_space_z_max,
+                                self.max_qw,
+                                self.max_qx,
+                                self.max_qy,
+                                self.max_qz])
+
+            low = np.array([self.work_space_x_min,
+                            self.work_space_y_min,
+                            self.work_space_z_min,
+                            -1*self.max_qw,
+                            -1*self.max_qx,
+                            -1*self.max_qy,
+                            -1*self.max_qz])
+
+            self.observation_space = spaces.Box(low, high, dtype=np.float32)
+
+            rospy.logdebug("ACTION SPACES TYPE===>"+str(self.action_space))
+            rospy.logdebug("OBSERVATION SPACES TYPE===>" +
+                        str(self.observation_space))
+
+            # Rewards
+            self.closer_to_point_reward = rospy.get_param(
+                "/mavdrone/closer_to_point_reward")
+            self.not_ending_point_reward = rospy.get_param(
+                "/mavdrone/not_ending_point_reward")
+            self.end_episode_points = rospy.get_param("/mavdrone/end_episode_points")
+
+            self.cumulated_steps = 0.0
 
 
 
