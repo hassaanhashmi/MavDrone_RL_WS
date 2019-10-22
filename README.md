@@ -1,6 +1,6 @@
 <h3><span style="color:red">This repository is under construction!</span></h3>
 
-The required repo structure (package level) is given below:
+The required workspace structure (package level) is given below:
 
 ```
 MavDrone_RL_WS
