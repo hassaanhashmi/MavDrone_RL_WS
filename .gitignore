@@ -2,7 +2,7 @@ Firmware/
 mavros/
 mavros_moveit/
 src/mavdrone_rl/training_results/*
-*.pyc
+*.pyc 
 .catkin_workspace
 build/
 devel/

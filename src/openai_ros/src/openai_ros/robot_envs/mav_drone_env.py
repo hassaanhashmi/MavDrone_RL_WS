@@ -80,7 +80,7 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
         
         self._arming_client = rospy.ServiceProxy('mavros/cmd/arming',CommandBool) #mavros service for arming/disarming the robot
         self._set_mode_client = rospy.ServiceProxy('mavros/set_mode', SetMode) #mavros service for setting mode. Position commands are only available in mode OFFBOARD.
-        self._change_param = rospy.ServiceProxy('/mavros/param/set', ParamSet)
+        #self._change_param = rospy.ServiceProxy('/mavros/param/set', ParamSet)
         
         #self.change_param_val(para="CBRK_GPSFAIL",value=100)
         
@@ -257,12 +257,12 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
             print ("Service takeoff call failed")
 
         while not ret.success:
-            rospy.logwarn("stuck here!!!")
-            self._arming_client.call(d_req)
+            rospy.logwarn("stuck in a loop!!!")
             self._rate.sleep()
             self._arming_client.call(req)
             ret = takeoffService(min_pitch=0, yaw=0, latitude=self._current_gps.latitude,\
                                 longitude=self._current_gps.longitude, altitude=alt)
+            self._arming_client.call(d_req)
             if ret.success:
                 rospy.loginfo("Took-off")
             else:
@@ -279,24 +279,6 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
         rospy.logdebug("MavROS Base Twist Cmd>>" + str(vel_msg))
         self._check_local_vel_pub_connection()
         self._local_vel_pub.publish(vel_msg)
-        """
-        self.wait_until_twist_achieved(cmd_vel_value,
-                                        epsilon,
-                                        update_rate)
-        
-        self.wait_time_for_execute_movement()
-        """
-    
-    """ def setMavMode(self, mode):
-        if (self._current_state.mode != mode):
-            offb_set_mode = SetMode()
-            offb_set_mode._request_class().custom_mode = mode
-            if (self._set_mode_client(custom_mode=mode) and offb_set_mode._response_class().mode_sent):
-                rospy.loginfo("Mode enabled.")
-                return True
-            else:
-                rospy.loginfo("Mode could not be enabled. Cannot execute actions.")
-                return False """
 
     def setMavMode(self, mode, timeout):
         """mode: PX4 mode string, timeout(int): seconds"""
@@ -318,33 +300,6 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
                 except rospy.ServiceException as e:
                     rospy.logerr(e)
             rate.sleep()
-
-
-    def setArmRequest(self, arm, timeout):
-
-        if self._current_state.armed and arm:
-            rospy.loginfo("already armed")
-            
-        else:
-            # wait for service
-            rospy.wait_for_service("mavros/cmd/arming")   
-            # set request object
-            req = CommandBoolRequest()
-            req.value = arm
-             # zero time 
-            t0 = rospy.get_time()
-            # check response
-            while not rospy.is_shutdown() and not self._current_state.armed:
-                if rospy.get_time() - t0 > 2.0: # check every 5 seconds
-                    try:
-                        # request 
-                        self._arming_client.call(req)
-                    except rospy.ServiceException, e:
-                        print ("Service did not process request")
-                    t0 = rospy.get_time()
-            rospy.loginfo("ARMED!!!")
-            return True       
-
 
     def change_param_val(self, para="None", value=0, intflag=True):
         """

@@ -160,7 +160,7 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
         and lands the robot. Its preparing it to be reseted in the world.
         """
         #raw_input("INIT SPEED PRESS")
-        self.ExecuteAction(self.init_velocity_vector, epsilon=0.05, update_rate=10)
+        #self.ExecuteAction(self.init_velocity_vector, epsilon=0.05, update_rate=10)
         # We Issue the landing command to be sure it starts landing
         #raw_input("LAND PRESS")
 
