@@ -1,27 +1,22 @@
 #!/usr/bin/env python
-import enum
+import os
 import rospy
 import numpy
 import time
 import tf
-import tf2_py
-import tf2_ros
 import mavros
-import tf2_geometry_msgs
 import openai_ros.robot_gazebo_env
-from mavros_msgs.msg import State
+from mavros_msgs.msg import State, ParamValue
 from sensor_msgs.msg import NavSatFix
-from actionlib import simple_action_server, simple_action_client
-from mavros_msgs.srv import SetMode, SetModeRequest, SetModeResponse, CommandBool, CommandBoolRequest, CommandBoolResponse, CommandTOL, CommandTOLRequest
+from mavros_msgs.srv import ParamSet, ParamGet, SetMode, SetModeRequest, SetModeResponse, CommandBool, CommandBoolRequest, CommandBoolResponse, CommandTOL, CommandTOLRequest
 from geometry_msgs.msg import PoseStamped, TwistStamped, Quaternion
 from openai_ros.openai_ros_common import ROSLauncher
 from openai_ros import robot_gazebo_env
 
 
 
-
 class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
-    """Superclass for all MavROS environments.
+    """Superclass for all PX4 MavDrone environments.
     """
     def __init__(self, ros_ws_abspath):
         """Initializes a new MavROS environment. \\
@@ -64,7 +59,7 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
         self.ros_launcher = ROSLauncher(rospackage_name="mavros_moveit",
                     launch_file_name="posix_sitl_2.launch", #to be edited and finalized
                     ros_ws_abspath=ros_ws_abspath)
-        #rospy.sleep(5)
+        rospy.sleep(15)
         self._current_pose = PoseStamped()
         self._current_state= State()
         self._current_gps  = NavSatFix()
@@ -79,16 +74,16 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
 
         # setpoint publishing rate must be faster than 2Hz. From MavROS documentation
         self._rate = rospy.Rate(20.0)
-        
+
         self._local_vel_pub = rospy.Publisher('mavros/setpoint_velocity/cmd_vel',TwistStamped,  queue_size=10)
 
-        #self._check_all_publishers_ready()
-
+        
         self._arming_client = rospy.ServiceProxy('mavros/cmd/arming',CommandBool) #mavros service for arming/disarming the robot
         self._set_mode_client = rospy.ServiceProxy('mavros/set_mode', SetMode) #mavros service for setting mode. Position commands are only available in mode OFFBOARD.
-
-        #self._check_all_services_ready()
-
+        self._change_param = rospy.ServiceProxy('/mavros/param/set', ParamSet)
+        
+        #self.change_param_val(para="CBRK_GPSFAIL",value=100)
+        
         self.gazebo.pauseSim()
 
         rospy.logdebug("Finished MavROSEnv INIT...")
@@ -351,11 +346,30 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
             return True       
 
 
-        
+    def change_param_val(self, para="None", value=0, intflag=True):
+        """
+        Change parameter values
+        """
+        rospy.wait_for_service('/mavros/param/set')
+        try:
+            param_val = ParamValue()
+            if intflag:
+                param_val.integer = value
+            else:
+                param_val.real = value
+            ret = self._change_param(str(para), param_val)
+            if ret.success:
+                rospy.loginfo("Changed {0} to {1}".format(str(para),value))
+            else:
+                rospy.loginfo("Failed changing {0}".format(str(para)))
+        except rospy.ServiceException, e:
+            rospy.loginfo("Service call failed")
 
     def get_current_pose(self):
         return self._current_pose
 
     def get_current_state(self):
-        #print("The current state is :", self._current_state)
         return self._current_state
+    
+    def get_current_gps(self):
+        return self._current_gps

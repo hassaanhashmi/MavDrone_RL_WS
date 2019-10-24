@@ -7,8 +7,6 @@ import numpy as np
 from math import sqrt, pi, cos, acos, log
 from tf.transformations import euler_from_quaternion
 
-from mavros_msgs.srv import ParamSet, ParamGet
-from mavros_msgs.msg import ParamValue
 from geometry_msgs.msg import Point, Vector3, PoseStamped, TwistStamped, Quaternion
 
 from openai_ros.robot_envs import mav_drone_env
@@ -20,7 +18,6 @@ from openai_ros.openai_ros_common import ROSLauncher
 # from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryResult import FollowMultiDofJointTrajectoryResult as FMDJTResult
 # from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryFeedback import FollowMultiDofJointTrajectoryFeedback as FMDJTFeedback
 # from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryGoal import FollowMultiDofJointTrajectoryGoal as FMDJTGoal
-
 
 class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
     def __init__(self):
