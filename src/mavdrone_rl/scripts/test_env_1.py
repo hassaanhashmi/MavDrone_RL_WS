@@ -18,12 +18,11 @@ if __name__ == '__main__':
     
     rospy.init_node('mavdrone_test_env',
                     anonymous=True, log_level=rospy.WARN)
-    print("Initial state reached!!!")
+    rospy.logwarn("Initial state reached!!!")
     # Init OpenAI_ROS ENV
     task_and_robot_environment_name = rospy.get_param('mav_drone/task_and_robot_environment_name')
     env = StartOpenAI_ROS_Environment(task_and_robot_environment_name)
     rospy.loginfo("Gym environment done")
-
     # Set the logging system
     rospack = rospkg.RosPack()
     pkg_path = rospack.get_path('mavdrone_rl')
@@ -42,10 +41,10 @@ if __name__ == '__main__':
         rospy.logdebug("############### START EPISODE=>" + str(x))
         observation = env.reset()
         state = ''.join(map(str, observation))
-        print(state)
+        rospy.logwarn(state)
         cumulated_reward = 0
         done = False
         for i in range(nsteps):
             rospy.logdebug("Episode: ", x,"step: ",i)
-            time.sleep(3)
+            time.sleep(0.020)
     env_to_wrap.close()

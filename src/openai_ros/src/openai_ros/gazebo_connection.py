@@ -3,7 +3,7 @@
 import rospy
 from std_srvs.srv import Empty
 from gazebo_msgs.msg import ODEPhysics
-from gazebo_msgs.srv import SetPhysicsProperties, SetPhysicsPropertiesRequest
+from gazebo_msgs.srv import SetPhysicsProperties, SetPhysicsPropertiesRequest, DeleteModel
 from std_msgs.msg import Float64
 from geometry_msgs.msg import Vector3
 
@@ -58,10 +58,10 @@ class GazeboConnection():
         systems.
         """
         if self.reset_world_or_sim == "SIMULATION":
-            rospy.logerr("SIMULATION RESET")
+            rospy.logwarn("SIMULATION RESET")
             self.resetSimulation()
         elif self.reset_world_or_sim == "WORLD":
-            rospy.logerr("WORLD RESET")
+            rospy.logwarn("WORLD RESET")
             self.resetWorld()
         elif self.reset_world_or_sim == "NO_RESET_SIM":
             rospy.logerr("NO RESET SIMULATION SELECTED")
@@ -143,3 +143,11 @@ class GazeboConnection():
         self._gravity.z = z
 
         self.update_gravity_call()
+    
+    def delete_model(self, model_name):
+        """ Remove the model with 'modelName' from the Gazebo scene """
+        # delete_model : gazebo_msgs/DeleteModel
+        del_model_prox = rospy.ServiceProxy('gazebo/delete_model', DeleteModel) # Handle to model spawner
+        # rospy.wait_for_service('gazebo/delete_model') # Wait for the model loader to be ready 
+        # FREEZES EITHER WAY
+        del_model_prox(str(model_name)) # Remove from Gazebo

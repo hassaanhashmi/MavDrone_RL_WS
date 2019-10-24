@@ -1,40 +1,25 @@
 #!/usr/bin/env python
 import os
-import enum
 import rospy
+from gym import spaces
+
 import numpy as np
-import tf
-import tf2_py
-import tf2_ros
-import tf2_geometry_msgs
-from math import sqrt, pi, sin, cos, asin, acos, atan2, exp, log
+from math import sqrt, pi, cos, acos, log
 from tf.transformations import euler_from_quaternion
+
+from mavros_msgs.srv import ParamSet, ParamGet
+from mavros_msgs.msg import ParamValue
+from geometry_msgs.msg import Point, Vector3, PoseStamped, TwistStamped, Quaternion
+
+from openai_ros.robot_envs import mav_drone_env
 from openai_ros.task_envs.task_commons import LoadYamlFileParamsTest
 from openai_ros.openai_ros_common import ROSLauncher
-from gym import spaces
-from openai_ros.robot_envs import mav_drone_env
-from actionlib import simple_action_server
-from actionlib import simple_action_client
-from mavros_msgs.msg._State import State
-from mavros_msgs.srv._SetMode import SetMode
-from mavros_msgs.srv._CommandBool import CommandBool
-from geometry_msgs.msg import Point
-from geometry_msgs.msg import Vector3
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import TwistStamped
-from geometry_msgs.msg import Quaternion
-""" from trajectory_msgs.msg import MultiDOFJointTrajectoryPoint as MDJTPoint
-from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryAction import FollowMultiDofJointTrajectoryAction as FMDJTAction
-from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryResult import FollowMultiDofJointTrajectoryResult as FMDJTResult
-from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryFeedback import FollowMultiDofJointTrajectoryFeedback as FMDJTFeedback
-from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryGoal import FollowMultiDofJointTrajectoryGoal as FMDJTGoal """
-
-
-
-
-""" class ControlMode(enum.Enum):
-    POSITION = 49929
-    VELOCITY = 43298 """
+ 
+# from trajectory_msgs.msg import MultiDOFJointTrajectoryPoint as MDJTPoint
+# from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryAction import FollowMultiDofJointTrajectoryAction as FMDJTAction
+# from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryResult import FollowMultiDofJointTrajectoryResult as FMDJTResult
+# from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryFeedback import FollowMultiDofJointTrajectoryFeedback as FMDJTFeedback
+# from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryGoal import FollowMultiDofJointTrajectoryGoal as FMDJTGoal
 
 
 class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
@@ -49,13 +34,17 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
                                                " DOESNT exist, execute: mkdir -p " + ros_ws_abspath + \
                                                "/src;cd " + ros_ws_abspath + ";catkin_make" 
                                                
-        ROSLauncher(rospackage_name="mavros_moveit",
-                    launch_file_name="px4_mavros_moveit_2.launch",
+        ROSLauncher(rospackage_name="mavros_moveit",\
+                    launch_file_name="px4_mavros_moveit_2.launch",\
                     ros_ws_abspath=ros_ws_abspath)
+
         self._load_params()
+
+
         # Here we will add any init functions prior to starting the MyRobotEnv
         # Launch the px4_mavros_moveit 
         super(MavDroneFollowEnv, self).__init__(ros_ws_abspath)
+
 
         
         #self._current_state = State()  # latest mavros state
@@ -173,12 +162,10 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
         Sets the Robot in its init linear and angular speeds
         and lands the robot. Its preparing it to be reseted in the world.
         """
-        #pass
         #raw_input("INIT SPEED PRESS")
         self.ExecuteAction(self.init_velocity_vector, epsilon=0.05, update_rate=10)
         # We Issue the landing command to be sure it starts landing
         #raw_input("LAND PRESS")
-        # self.land()
 
         return True
 
@@ -198,13 +185,6 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
                 vel_msg = TwistStamped()
                 self._local_vel_pub.publish(vel_msg)
                 self._rate.sleep()
-            #rospy.sleep(10)
-            #Arm vehicle
-             if self.setArmRequest(True,5):
-                 rospy.logerr("Arm Request SUCCESSFUL!!!")
-                 #self._action_server.set_aborted()
-            else:
-                rospy.logerr("Arm Request FAILED!!!")
             
             #Set vehicle to offboard mode
             if not self.setMavMode("OFFBOARD",5):
@@ -212,8 +192,9 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
                 #self._action_server.set_aborted()
             else:
                 rospy.logerr("OFFBOARD FAILED!!!")
-            #rospy.sleep(10)
-            self.ExecuteTakeoff(alt = 2.5)
+
+            self.ArmTakeOff(arm=True, alt=10)
+
         else:
             rospy.logerr("NOT CONNECTED!!!!!!")
 
