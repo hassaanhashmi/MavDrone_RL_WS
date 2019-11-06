@@ -5,7 +5,7 @@
     <rosparam command="load" file="$(find mavdrone_rl)/config/mav_drone_openai_qlearn_params_v2.yaml" />
     <!-- Launch the training system -->
     <!-- <include file="$(find mavdrone_rl)/launch/env.launch" /> -->
-    <node pkg="mavdrone_rl" name="mavdrone_env_test" type="test_env_1.py" output="screen"/>
+    <node pkg="mavdrone_rl" name="mavdrone_env_test" type="test_env.py" output="screen"/>
 
     <!-- start gui -->
     <!-- <group if="$(arg gui)">

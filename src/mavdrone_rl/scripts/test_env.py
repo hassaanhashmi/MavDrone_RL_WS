@@ -20,6 +20,7 @@ if __name__ == '__main__':
     rospy.logwarn("Initial state reached!!!")
     # Init OpenAI_ROS ENV
     task_and_robot_environment_name = rospy.get_param('mav_drone/task_and_robot_environment_name')
+    
     env = Start_OpenAI_ROS_Environment(task_and_robot_environment_name)
     rospy.loginfo("Gym environment done")
     # Set the logging system

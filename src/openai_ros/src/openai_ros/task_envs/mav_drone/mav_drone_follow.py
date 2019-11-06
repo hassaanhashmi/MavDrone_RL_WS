@@ -17,20 +17,14 @@ from openai_ros.roslauncher import ROSLauncher
 class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
     def __init__(self):
         """
-        Make mavdrone learn how to navigate to get to a point
+        Make mavdrone learn how to follow a trajectory
         """
-        ros_ws_abspath = RosPack().get_path('MavDrone_RL_WS')
-        assert os.path.exists(ros_ws_abspath), "The Simulation ROS Workspace path " + ros_ws_abspath + \
-                                               " DOESNT exist, Please change the name of workspace to MavDrone_RL_WS"
-                                               
-        ROSLauncher(rospackage_name="mavros_moveit", launch_file_name="px4_mavros_moveit.launch"
+
+        ROSLauncher(rospackage_name="mavros_moveit", launch_file_name="px4_mavros_moveit.launch")
 
         self._load_params()
 
-
-        # Here we will add any init functions prior to starting the MyRobotEnv
-        # Launch the px4_mavros_moveit 
-        super(MavDroneFollowEnv, self).__init__(ros_)
+        super(MavDroneFollowEnv, self).__init__()
 
 
         self.vel_msg = TwistStamped()
