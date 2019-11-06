@@ -1,6 +1,5 @@
 mav_drone: #namespace
     task_and_robot_environment_name: 'MavDrone-v0'
-    ros_ws_abspath: "/home/hmi/Projects/catkin_ws/MavDrone_RL_WS"
     #qlearn parameters
     alpha: 0.1
     gamma: 0.7

@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 import os
 import rospy
-import numpy
 import time
 import tf
 import mavros
 import openai_ros.robot_gazebo_env
 from mavros_msgs.msg import State, ParamValue
 from sensor_msgs.msg import NavSatFix
-from mavros_msgs.srv import ParamSet, ParamGet, SetMode, SetModeRequest, SetModeResponse, CommandBool, CommandBoolRequest, CommandBoolResponse, CommandTOL, CommandTOLRequest
+from mavros_msgs.srv import ParamSet, ParamGet, SetMode, CommandBool, CommandBoolRequest, CommandTOL
 from geometry_msgs.msg import PoseStamped, TwistStamped, Quaternion
-from openai_ros.openai_ros_common import ROSLauncher
+from openai_ros.roslauncher import ROSLauncher
 from openai_ros import robot_gazebo_env
 
 
@@ -18,7 +17,7 @@ from openai_ros import robot_gazebo_env
 class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
     """Superclass for all PX4 MavDrone environments.
     """
-    def __init__(self, ros_ws_abspath):
+    def __init__(self):
         """Initializes a new MavROS environment. \\
         To check the ROS topics, unpause the paused simulation \\
         or reset the controllers if simulation is running.
@@ -56,9 +55,8 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
                                              reset_world_or_sim="WORLD")
         self.gazebo.unpauseSim()
 
-        self.ros_launcher = ROSLauncher(rospackage_name="mavros_moveit",
-                    launch_file_name="posix_sitl_2.launch", #to be edited and finalized
-                    ros_ws_abspath=ros_ws_abspath)
+        # self.ros_launcher = ROSLauncher(rospackage_name="mavros_moveit", launch_file_name="posix_sitl_2.launch")
+                    
         rospy.sleep(15)
         self._current_pose = PoseStamped()
         self._current_state= State()
@@ -80,9 +78,9 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
         
         self._arming_client = rospy.ServiceProxy('mavros/cmd/arming',CommandBool) #mavros service for arming/disarming the robot
         self._set_mode_client = rospy.ServiceProxy('mavros/set_mode', SetMode) #mavros service for setting mode. Position commands are only available in mode OFFBOARD.
-        #self._change_param = rospy.ServiceProxy('/mavros/param/set', ParamSet)
+        self._change_param = rospy.ServiceProxy('/mavros/param/set', ParamSet)
         
-        #self.change_param_val(para="CBRK_GPSFAIL",value=100)
+        #self.change_param_val(para="COM_POS_FS_DELAY",value=99)
         
         self.gazebo.pauseSim()
 
@@ -93,9 +91,15 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
     # ----------------------------
     
     def _reset_sim(self):
+        """
+        Including ***ekf2 stop*** and ***ekf2 start*** routines in original function
+        """
         self._reset_sim_before()
-        self.ros_launcher.restart()
+        ROSLauncher(rospackage_name="mavdrone_rl", launch_file_name="px4_ekf2_stop.launch")
+        rospy.sleep(0.001)
+        ROSLauncher(rospackage_name="mavdrone_rl", launch_file_name="px4_ekf2_start.launch")
         self._reset_sim_after()
+
 
     def _poseCb(self, msg):
         self._current_pose = msg
@@ -267,11 +271,6 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
                 rospy.loginfo("Took-off")
             else:
                 rospy.loginfo("Failed taking-off")
-        
-        # while self._current_pose.pose.position.z < curr_alt+alt-0.1:
-        #     self._rate.sleep()
-        #     difference = alt - self._current_pose.pose.position.z 
-        #     rospy.loginfo("Height remaining {0}".format(ret))
     
 
     def ExecuteAction(self, vel_msg, epsilon=0.05, update_rate=20):
@@ -301,9 +300,71 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
                     rospy.logerr(e)
             rate.sleep()
 
+    def LandDisArm(self):
+        #Landing
+
+        req = CommandBoolRequest()
+        d_req = CommandBoolRequest()
+        req.value = False
+        d_req.value = True
+        if self._current_pose.pose.position.z > 1:
+            LandService = rospy.ServiceProxy('/mavros/cmd/land', CommandTOL)
+            try:
+                ret = LandService(min_pitch=0, yaw=0, latitude=self._current_gps.latitude,\
+                                    longitude=self._current_gps.longitude, altitude=self._current_pose.pose.position.z)
+                if ret.success:
+                    rospy.loginfo("Took-off")
+                else:
+                    rospy.loginfo("Failed taking-off")
+            except rospy.ServiceException, e:
+                print ("Service takeoff call failed")
+
+            while not ret.success:
+                rospy.logwarn("stuck in a loop!!!")
+                self._rate.sleep()
+                self._arming_client.call(d_req)
+                ret = LandService(min_pitch=0, yaw=0, latitude=self._current_gps.latitude,\
+                                    longitude=self._current_gps.longitude, altitude=self._current_pose.pose.position.z)
+                self._arming_client.call(req)
+                if ret.success:
+                    rospy.loginfo("Landing initiated")
+                else:
+                    rospy.loginfo("Failed to initiate landing")
+        else:
+            #Disarming
+            if not self._current_state.armed:
+                rospy.loginfo("already disarmed")
+                
+            else:
+                # wait for service
+                rospy.wait_for_service("mavros/cmd/arming")   
+                # set request object
+                # zero time 
+                t0 = rospy.get_time()
+                # check response
+                while not rospy.is_shutdown() and self._current_state.armed:
+                    if rospy.get_time() - t0 > 2.0: # check every 5 seconds
+                        try:
+                            # request 
+                            self._arming_client.call(req)
+                        except rospy.ServiceException, e:
+                            print ("Service did not process request")
+                        t0 = rospy.get_time()
+                rospy.loginfo("DISARMED!!!")
+
+    def get_current_pose(self):
+        return self._current_pose
+
+    def get_current_state(self):
+        return self._current_state
+    
+    def get_current_gps(self):
+        return self._current_gps
+
+
     def change_param_val(self, para="None", value=0, intflag=True):
         """
-        Change parameter values
+        Change parameter values through MavROS
         """
         rospy.wait_for_service('/mavros/param/set')
         try:
@@ -319,12 +380,3 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
                 rospy.loginfo("Failed changing {0}".format(str(para)))
         except rospy.ServiceException, e:
             rospy.loginfo("Service call failed")
-
-    def get_current_pose(self):
-        return self._current_pose
-
-    def get_current_state(self):
-        return self._current_state
-    
-    def get_current_gps(self):
-        return self._current_gps

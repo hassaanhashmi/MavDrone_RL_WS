@@ -115,26 +115,29 @@ class RobotGazeboEnv(gym.Env):
             self.controllers_object.reset_controllers()
             self._check_all_systems_ready()
             self._set_init_pose()
+            rospy.logwarn("Set to initial pose")
             self.gazebo.pauseSim()
+            
         else:
+            self.gazebo.resetSim()
             rospy.logwarn("DONT RESET CONTROLLERS")
             self.gazebo.unpauseSim()
             self._check_all_systems_ready()
             self._set_init_pose()
             rospy.logwarn("Set to initial pose")
             self.gazebo.pauseSim()
+            
     
     def _reset_sim_after(self):
 
         if self.reset_controls:
-            self.gazebo.resetSim()
             self.gazebo.unpauseSim()
             self.controllers_object.reset_controllers()
             self._check_all_systems_ready()
+            rospy.logwarn("All systems checked")
             self.gazebo.pauseSim()
         else:
             self.gazebo.resetSim()
-            rospy.logwarn("Gazebo sim reset occured")
             self.gazebo.unpauseSim()
             self._check_all_systems_ready()
             rospy.logwarn("All systems checked")

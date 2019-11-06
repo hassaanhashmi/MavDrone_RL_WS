@@ -1,10 +1,9 @@
-Firmware/
-mavros/
-mavros_moveit/
+src/Firmware/
+src/mavros/
+src/mavros_moveit/
 src/mavdrone_rl/training_results/*
 *.pyc 
 .catkin_workspace
 build/
 devel/
-CMakeLists.txt
 .vscode/

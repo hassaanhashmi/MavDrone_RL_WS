@@ -8,7 +8,7 @@ from gym import wrappers
 # ROS packages required
 import rospy
 import rospkg
-from openai_ros.openai_ros_common import StartOpenAI_ROS_Environment
+from openai_ros.start_gym_env import Start_OpenAI_ROS_Environment
 
 
 if __name__ == '__main__':
@@ -19,7 +19,7 @@ if __name__ == '__main__':
     # Init OpenAI_ROS ENV
     task_and_robot_environment_name = rospy.get_param(
         '/mav_drone/task_and_robot_environment_name')
-    env = StartOpenAI_ROS_Environment(task_and_robot_environment_name)
+    env = Start_OpenAI_ROS_Environment(task_and_robot_environment_name)
     rospy.loginfo("Gym environment done")
 
     # Set the logging system

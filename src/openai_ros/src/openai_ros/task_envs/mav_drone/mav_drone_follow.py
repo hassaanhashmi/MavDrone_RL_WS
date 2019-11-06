@@ -2,6 +2,7 @@
 import os
 import rospy
 from gym import spaces
+from rospkg import RosPack
 
 import numpy as np
 from math import sqrt, pi, cos, acos, log
@@ -10,51 +11,32 @@ from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import Point, Vector3, PoseStamped, TwistStamped, Quaternion
 
 from openai_ros.robot_envs import mav_drone_env
-from openai_ros.task_envs.task_commons import LoadYamlFileParamsTest
-from openai_ros.openai_ros_common import ROSLauncher
- 
-# from trajectory_msgs.msg import MultiDOFJointTrajectoryPoint as MDJTPoint
-# from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryAction import FollowMultiDofJointTrajectoryAction as FMDJTAction
-# from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryResult import FollowMultiDofJointTrajectoryResult as FMDJTResult
-# from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryFeedback import FollowMultiDofJointTrajectoryFeedback as FMDJTFeedback
-# from mavros_moveit_actions.msg._FollowMultiDofJointTrajectoryGoal import FollowMultiDofJointTrajectoryGoal as FMDJTGoal
+from openai_ros.load_env_params import LoadYamlFileParamsTest
+from openai_ros.roslauncher import ROSLauncher
 
 class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
     def __init__(self):
         """
         Make mavdrone learn how to navigate to get to a point
         """
-
-        ros_ws_abspath = rospy.get_param("/mav_drone/ros_ws_abspath", None)
-        assert ros_ws_abspath is not None, "You forgot to set ros_ws_abspath in your yaml file of your main RL script. Set ros_ws_abspath: \'YOUR/SIM_WS/PATH\'"
+        ros_ws_abspath = RosPack().get_path('MavDrone_RL_WS')
         assert os.path.exists(ros_ws_abspath), "The Simulation ROS Workspace path " + ros_ws_abspath + \
-                                               " DOESNT exist, execute: mkdir -p " + ros_ws_abspath + \
-                                               "/src;cd " + ros_ws_abspath + ";catkin_make" 
+                                               " DOESNT exist, Please change the name of workspace to MavDrone_RL_WS"
                                                
-        ROSLauncher(rospackage_name="mavros_moveit",\
-                    launch_file_name="px4_mavros_moveit_2.launch",\
-                    ros_ws_abspath=ros_ws_abspath)
+        ROSLauncher(rospackage_name="mavros_moveit", launch_file_name="px4_mavros_moveit.launch"
 
         self._load_params()
 
 
         # Here we will add any init functions prior to starting the MyRobotEnv
         # Launch the px4_mavros_moveit 
-        super(MavDroneFollowEnv, self).__init__(ros_ws_abspath)
+        super(MavDroneFollowEnv, self).__init__(ros_)
 
 
-        
-        #self._current_state = State()  # latest mavros state
-        #self._current_pose = PoseStamped() # latest robot pose
         self.vel_msg = TwistStamped()
         self._rate = rospy.Rate(20.0) # ros run rate
-        
-        #self.executing = False # whether the action server is currently in execution
-    
-        #self._target_pos_tol = 0.1 # difference tolerance of position from the target position
-        #self._target_orientation_tol = 0.05 # # difference tolerance of orientation from the target orientation
 
-        #self._control_mode = ControlMode.VELOCITY
+
 
 
     def _load_params(self):
@@ -153,17 +135,12 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
 
             self.cumulated_steps = 0.0
 
-
     def _set_init_pose(self):
         """
-        Sets the Robot in its init linear and angular speeds
-        and lands the robot. Its preparing it to be reseted in the world.
+        Sets the Robot in its init linear and angular speeds.
+        Its preparing it to be reseted in the world.
         """
-        #raw_input("INIT SPEED PRESS")
-        #self.ExecuteAction(self.init_velocity_vector, epsilon=0.05, update_rate=10)
-        # We Issue the landing command to be sure it starts landing
-        #raw_input("LAND PRESS")
-
+        self.ExecuteAction(self.init_velocity_vector, epsilon=0.05, update_rate=10)
         return True
 
     def _init_env_variables(self):
@@ -172,10 +149,8 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
         of an episode.
         :return:
         """
-        #raw_input("TakeOFF PRESS")
-        # We TakeOff before sending any movement commands
-        #Check for fcu connection
         self.gazebo.unpauseSim()
+        
         if self.get_current_state().connected:
             #Send a few setpoints before starting
             for i in (j for j in range(1,0,-1) if not rospy.is_shutdown()):
@@ -186,10 +161,8 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
             #Set vehicle to offboard mode
             if not self.setMavMode("OFFBOARD",5):
                 rospy.logerr("OFFBOARD SUCCESSFUL!!!")
-                #self._action_server.set_aborted()
             else:
                 rospy.logerr("OFFBOARD FAILED!!!")
-
             self.ArmTakeOff(arm=True, alt=10)
 
         else:

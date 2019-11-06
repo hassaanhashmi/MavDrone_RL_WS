@@ -9,19 +9,18 @@ from gym import wrappers
 import rospy
 import rospkg
 import roslaunch
-from openai_ros.openai_ros_common import StartOpenAI_ROS_Environment
-from openai_ros.openai_ros_common import ROSLauncher
+from openai_ros.start_gym_env import Start_OpenAI_ROS_Environment
+from openai_ros.roslauncher import ROSLauncher
 
 
 if __name__ == '__main__':
 
     
-    rospy.init_node('mavdrone_test_env',
-                    anonymous=True, log_level=rospy.WARN)
+    rospy.init_node('mavdrone_test_env', anonymous=True, log_level=rospy.WARN)
     rospy.logwarn("Initial state reached!!!")
     # Init OpenAI_ROS ENV
     task_and_robot_environment_name = rospy.get_param('mav_drone/task_and_robot_environment_name')
-    env = StartOpenAI_ROS_Environment(task_and_robot_environment_name)
+    env = Start_OpenAI_ROS_Environment(task_and_robot_environment_name)
     rospy.loginfo("Gym environment done")
     # Set the logging system
     rospack = rospkg.RosPack()
@@ -40,11 +39,13 @@ if __name__ == '__main__':
     for x in range(nepisodes):
         rospy.logdebug("############### START EPISODE=>" + str(x))
         observation = env.reset()
+        while True:
+            pass
         state = ''.join(map(str, observation))
         rospy.logwarn(state)
         cumulated_reward = 0
         done = False
         for i in range(nsteps):
             rospy.logdebug("Episode: ", x,"step: ",i)
-            time.sleep(0.020)
+            time.sleep(0.05)
     env_to_wrap.close()
