@@ -1,5 +1,0 @@
-<launch>
-    <include file="$(find mavros_moveit)/launch/px4_moveit.launch"/>
-    </include>
-</launch>
- 
