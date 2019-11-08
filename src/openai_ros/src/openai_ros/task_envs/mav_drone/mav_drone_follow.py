@@ -3,6 +3,7 @@ import os
 import rospy
 from gym import spaces
 from rospkg import RosPack
+import subprocess32 as subprocess
 
 import numpy as np
 from math import sqrt, pi, cos, acos, log
@@ -20,8 +21,7 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
         Make mavdrone learn how to follow a trajectory
         """
 
-        ROSLauncher(rospackage_name="mavros_moveit", launch_file_name="px4_mavros_moveit.launch")
-
+        #ROSLauncher(rospackage_name="mavros_moveit", launch_file_name="px4_mavros_moveit.launch")
         self._load_params()
 
         super(MavDroneFollowEnv, self).__init__()
@@ -153,11 +153,11 @@ class MavDroneFollowEnv(mav_drone_env.MavDroneEnv):
                 self._rate.sleep()
             
             #Set vehicle to offboard mode
-            if not self.setMavMode("OFFBOARD",5):
-                rospy.logerr("OFFBOARD SUCCESSFUL!!!")
-            else:
-                rospy.logerr("OFFBOARD FAILED!!!")
-            self.ArmTakeOff(arm=True, alt=10)
+            # if not self.setMavMode("OFFBOARD",5):
+            #     rospy.logerr("OFFBOARD SUCCESSFUL!!!")
+            # else:
+            #     rospy.logerr("OFFBOARD FAILED!!!")
+            self.ArmTakeOff(arm=True, alt=3)
 
         else:
             rospy.logerr("NOT CONNECTED!!!!!!")

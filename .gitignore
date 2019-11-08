@@ -6,4 +6,5 @@ src/mavdrone_rl/training_results/*
 .catkin_workspace
 build/
 devel/
+install/
 .vscode/

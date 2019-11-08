@@ -11,7 +11,7 @@ import rospkg
 import roslaunch
 from openai_ros.start_gym_env import Start_OpenAI_ROS_Environment
 from openai_ros.roslauncher import ROSLauncher
-
+import subprocess
 
 if __name__ == '__main__':
 
@@ -20,7 +20,6 @@ if __name__ == '__main__':
     rospy.logwarn("Initial state reached!!!")
     # Init OpenAI_ROS ENV
     task_and_robot_environment_name = rospy.get_param('mav_drone/task_and_robot_environment_name')
-    
     env = Start_OpenAI_ROS_Environment(task_and_robot_environment_name)
     rospy.loginfo("Gym environment done")
     # Set the logging system
@@ -38,15 +37,13 @@ if __name__ == '__main__':
 
     # Starts the main training loop: the one about the episodes to do
     for x in range(nepisodes):
-        rospy.logdebug("############### START EPISODE=>" + str(x))
+        rospy.logwarn("############### START EPISODE=>" + str(x))
         observation = env.reset()
-        while True:
-            pass
         state = ''.join(map(str, observation))
         rospy.logwarn(state)
         cumulated_reward = 0
         done = False
-        for i in range(nsteps):
-            rospy.logdebug("Episode: ", x,"step: ",i)
-            time.sleep(0.05)
+        # for i in range(nsteps):
+        #     rospy.logdebug("Episode: {0} step: {1}".format(x,i))
+        time.sleep(20)
     env_to_wrap.close()

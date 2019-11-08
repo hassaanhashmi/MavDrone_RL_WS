@@ -2,5 +2,6 @@
 <launch>
 
 <arg name="command" default="stop"/>
-<node name="px4_sitl_ekf2" pkg="px4" type="px4-ekf2" output="screen" args="$(arg command)" required="true"/>
+<node name="px4_sitl_ekf2_stop" pkg="px4" type="px4-ekf2" output="screen" args="$(arg command)" required="true"/>
+<node name="px4_sitl_ekf2_2" pkg="px4" type="px4-ekf2" output="screen" args="status" required="true"/>
 </launch>

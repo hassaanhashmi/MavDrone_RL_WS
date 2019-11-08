@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 import os
+import subprocess32 as subprocess
 import rospy
 import time
 import tf
 import mavros
+import rospkg
 import openai_ros.robot_gazebo_env
 from mavros_msgs.msg import State, ParamValue
 from sensor_msgs.msg import NavSatFix
@@ -43,6 +45,8 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
         self.controllers_list = ['my_robot_controller1, my_robot_controller2 , ..., my_robot_controllerX']
 
         self.robot_name_space = ""
+        self.px4_ekf2_path = os.path.join(rospkg.RosPack().get_path("px4"),"build/px4_sitl_default/bin/px4-ekf2")
+
 
         #reset_controls_bool = True or False
         
@@ -57,7 +61,6 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
 
         # self.ros_launcher = ROSLauncher(rospackage_name="mavros_moveit", launch_file_name="posix_sitl_2.launch")
                     
-        rospy.sleep(15)
         self._current_pose = PoseStamped()
         self._current_state= State()
         self._current_gps  = NavSatFix()
@@ -79,6 +82,7 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
         self._arming_client = rospy.ServiceProxy('mavros/cmd/arming',CommandBool) #mavros service for arming/disarming the robot
         self._set_mode_client = rospy.ServiceProxy('mavros/set_mode', SetMode) #mavros service for setting mode. Position commands are only available in mode OFFBOARD.
         self._change_param = rospy.ServiceProxy('/mavros/param/set', ParamSet)
+        self.takeoffService = rospy.ServiceProxy('/mavros/cmd/takeoff', CommandTOL)
         
         #self.change_param_val(para="COM_POS_FS_DELAY",value=99)
         
@@ -94,11 +98,64 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
         """
         Including ***ekf2 stop*** and ***ekf2 start*** routines in original function
         """
-        self._reset_sim_before()
-        ROSLauncher(rospackage_name="mavdrone_rl", launch_file_name="px4_ekf2_stop.launch")
-        rospy.sleep(0.001)
-        ROSLauncher(rospackage_name="mavdrone_rl", launch_file_name="px4_ekf2_start.launch")
-        self._reset_sim_after()
+
+        rospy.logdebug("RESET SIM START")
+        if self.reset_controls :
+            rospy.logdebug("RESET CONTROLLERS")
+            self.gazebo.unpauseSim()
+            self.controllers_object.reset_controllers()
+            self._check_all_systems_ready()
+            self._set_init_pose()
+            rospy.logwarn("Set to initial pose")
+            self.gazebo.pauseSim()
+            self.gazebo.resetSim()
+            self.gazebo.unpauseSim()
+            
+            rospy.logwarn("ekf2 module")
+            ekf2_stop = subprocess.Popen([self.px4_ekf2_path, "stop"])
+            ekf2_stop.wait()
+            subprocess.Popen([self.px4_ekf2_path, "status"])
+            rospy.sleep(2)
+            rospy.logwarn("ekf2_stopped")
+            ekf2_start = subprocess.Popen([self.px4_ekf2_path, "start"])
+            ekf2_start.wait()
+            subprocess.Popen([self.px4_ekf2_path, "status"])
+            rospy.sleep(2)
+            rospy.logwarn("ekf2_started")
+            rospy.sleep(4)
+            
+            self.controllers_object.reset_controllers()
+            self._check_all_systems_ready()
+            rospy.logwarn("All systems checked")
+            self.gazebo.pauseSim()
+            
+        else:
+            self.gazebo.resetSim()
+            rospy.logwarn("DONT RESET CONTROLLERS")
+            self.gazebo.unpauseSim()
+            self._check_all_systems_ready()
+            self._set_init_pose()
+            rospy.logwarn("Set to initial pose")
+            self.gazebo.pauseSim()
+            self.gazebo.resetSim()
+            self.gazebo.unpauseSim()
+            
+            rospy.logwarn("ekf2 module")
+            ekf2_stop = subprocess.Popen([self.px4_ekf2_path, "stop"])
+            subprocess.Popen([self.px4_ekf2_path, "status"])
+            rospy.logwarn("ekf2_stopped")
+            rospy.sleep(2)
+            ekf2_start = subprocess.Popen([self.px4_ekf2_path, "start"])
+            subprocess.Popen([self.px4_ekf2_path, "status"])
+            rospy.sleep(2)
+            rospy.logwarn("ekf2_started")
+            #rospy.sleep(4)
+
+            self._check_all_systems_ready()
+            rospy.logwarn("All systems checked")
+            self.gazebo.pauseSim()
+        rospy.logdebug("RESET SIM END")
+
 
 
     def _poseCb(self, msg):
@@ -136,7 +193,7 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
                 self._current_pose = rospy.wait_for_message("mavros/local_position/pose", PoseStamped, timeout=5.0)
                 rospy.logdebug("Current mavros/local_position/pose READY=>")
             except:
-                rospy.logerr("Current mavros/local_position/pose not ready, retrying for getting lp_pose")
+                rospy.logdebug("Current mavros/local_position/pose not ready, retrying for getting lp_pose")
         return self._current_pose
     
     def _check_current_state_ready(self):
@@ -224,6 +281,8 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
     # ----------------------------
 
     def ArmTakeOff(self, arm, alt = 5):
+        req = CommandBoolRequest()
+        d_req = CommandBoolRequest()
         if self._current_state.armed and arm:
             rospy.loginfo("already armed")
             
@@ -231,8 +290,6 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
             # wait for service
             rospy.wait_for_service("mavros/cmd/arming")   
             # set request object
-            req = CommandBoolRequest()
-            d_req = CommandBoolRequest()
             req.value = arm
             d_req.value = not arm
              # zero time 
@@ -246,15 +303,14 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
                     except rospy.ServiceException, e:
                         print ("Service did not process request")
                     t0 = rospy.get_time()
-            rospy.loginfo("ARMED!!!")
+            rospy.logwarn("ARMED!!!")
 
         curr_alt = self._current_pose.pose.position.z
-        takeoffService = rospy.ServiceProxy('/mavros/cmd/takeoff', CommandTOL)
         try:
-            ret = takeoffService(min_pitch=0, yaw=0, latitude=self._current_gps.latitude,\
+            ret = self.takeoffService(min_pitch=0, yaw=0, latitude=self._current_gps.latitude,\
                                 longitude=self._current_gps.longitude, altitude=alt)
             if ret.success:
-                rospy.loginfo("Took-off")
+                rospy.logwarn("Took-off")
             else:
                 rospy.loginfo("Failed taking-off")
         except rospy.ServiceException, e:
@@ -264,9 +320,8 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
             rospy.logwarn("stuck in a loop!!!")
             self._rate.sleep()
             self._arming_client.call(req)
-            ret = takeoffService(min_pitch=0, yaw=0, latitude=self._current_gps.latitude,\
+            ret = self.takeoffService(min_pitch=0, yaw=0, latitude=self._current_gps.latitude,\
                                 longitude=self._current_gps.longitude, altitude=alt)
-            self._arming_client.call(d_req)
             if ret.success:
                 rospy.loginfo("Took-off")
             else:
