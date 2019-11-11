@@ -6,7 +6,6 @@ The required workspace structure (package level) is given below:
 MavDrone_RL_WS
 └── src
   └── mavdrone_rl
-  └── openai_ros
   └── Firmware
   └── mavros
   └── mavros_moveit
