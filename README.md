@@ -15,18 +15,26 @@ After cloning the repository, follow the following steps to setup the workspace 
 
 ```
 cd MavDrone_RL_WS/src
-git clone https://github.com/irl-at-ncai/Firmware.git && cd Firmware
-cd Tools/sitl_gazebo
+vcs-import < ws_repo_dep.yaml
+cd Firmware/Tools/sitl_gazebo
 git pull origin master
 git remote set_url origin https://github.com/saifullah3396/sitl_gazebo.git
 git pull origin master
 ```
-Build the Firmware for iris drone and gazebo. Afterwards clone mavros and mavros_moveit:
-```
-cd ../../../
-git clone https://github.com/mavlink/mavros.git
-git clone https://github.com/hassaanhashmi/mavros_moveit.git
-cd ..
-```
-Now build the workspace with ```catkin_make```
+Build the Firmware for iris drone and gazebo.
+Now build the workspace and add the following lines in ```~/.bashrc```
 
+```(subl)
+export MAV_GYM_WS= [Path to MavDrone_RL_WS dir]
+source $MAV_GYM_WS/devel/setup.bash
+export GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:$MAV_GYM_WS/src/Firmware/build/px4_sitl_default/build_gazebo
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:$MAV_GYM_WS/src/Firmware/Tools/sitl_gazebo/models
+export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$MAV_GYM_WS/src/Firmware
+export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$MAV_GYM_WS/src/Firmware/Tools/sitl_gazebo
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:MAV_GYM_WS/src/Firmware/build/px4_sitl_default/build_gazebo
+```
+
+
+Demo version:
+A test script is available at ```scripts/test_env.py```
+The Launch file in ```Launch``` folder is used to launch ```test_env.py``` with parameters found in ```config/mavdrone_test.yaml```
