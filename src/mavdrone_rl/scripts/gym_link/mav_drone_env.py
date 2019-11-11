@@ -6,13 +6,13 @@ import time
 import tf
 import mavros
 import rospkg
-import openai_ros.robot_gazebo_env
+import gym_link.robot_gazebo_env
 from mavros_msgs.msg import State, ParamValue
 from sensor_msgs.msg import NavSatFix
 from mavros_msgs.srv import ParamSet, ParamGet, SetMode, CommandBool, CommandBoolRequest, CommandTOL
 from geometry_msgs.msg import PoseStamped, TwistStamped, Quaternion
-from openai_ros.roslauncher import ROSLauncher
-from openai_ros import robot_gazebo_env
+from gym_link.roslauncher import ROSLauncher
+from gym_link import robot_gazebo_env
 
 
 
@@ -20,23 +20,8 @@ class MavDroneEnv(robot_gazebo_env.RobotGazeboEnv):
     """Superclass for all PX4 MavDrone environments.
     """
     def __init__(self):
-        """Initializes a new MavROS environment. \\
-        To check the ROS topics, unpause the paused simulation \\
-        or reset the controllers if simulation is running.
-
-        Sensors for RL observation space (by topic list): \\
-        
-        * /mavros/local_position/pose                   
-        * /mavros/local_position/velocity_body          
-        }
-
-
-        Actuations for RL action space (by topic list):
-        * /cmd_vel: Move the Drone Around when you have taken off.
-
-        Args:
+        """Initializes a new MavROS environment.
         """
-
 
         rospy.logdebug("Start MavDroneEnv INIT...")
         # Variables that we give through the constructor.

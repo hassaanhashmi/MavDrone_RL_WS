@@ -1,12 +1,9 @@
 import rospy
 import gym
 from gym.utils import seeding
-from .gazebo_connection import GazeboConnection
-from .controllers_connection import ControllersConnection
-#https://bitbucket.org/theconstructcore/theconstruct_msgs/src/master/msg/RLExperimentInfo.msg
-from openai_ros.msg import RLExperimentInfo
+from gym_link.gazebo_connection import GazeboConnection
+from mavdrone_rl.msg import ExpLog
 
-# https://github.com/openai/gym/blob/master/gym/core.py
 class RobotGazeboEnv(gym.Env):
 
     def __init__(self, robot_name_space, controllers_list, reset_controls, start_init_physics_parameters=True, reset_world_or_sim="SIMULATION"):
@@ -14,14 +11,13 @@ class RobotGazeboEnv(gym.Env):
         # To reset Simulations
         rospy.logdebug("START init RobotGazeboEnv")
         self.gazebo = GazeboConnection(start_init_physics_parameters,reset_world_or_sim)
-        self.controllers_object = ControllersConnection(namespace=robot_name_space, controllers_list=controllers_list)
         self.reset_controls = reset_controls
         self.seed()
 
         # Set up ROS related variables
         self.episode_num = 0
         self.cumulated_episode_reward = 0
-        self.reward_pub = rospy.Publisher('/openai/reward', RLExperimentInfo, queue_size=1)
+        self.reward_pub = rospy.Publisher('/openai/reward', ExpLog, queue_size=1)
         rospy.logdebug("END init RobotGazeboEnv")
 
     # Env methods
@@ -100,7 +96,7 @@ class RobotGazeboEnv(gym.Env):
         :param episode_number:
         :return:
         """
-        reward_msg = RLExperimentInfo()
+        reward_msg = ExpLog()
         reward_msg.episode_number = episode_number
         reward_msg.episode_reward = reward
         self.reward_pub.publish(reward_msg)
@@ -112,7 +108,6 @@ class RobotGazeboEnv(gym.Env):
         if self.reset_controls :
             rospy.logdebug("RESET CONTROLLERS")
             self.gazebo.unpauseSim()
-            self.controllers_object.reset_controllers()
             self._check_all_systems_ready()
             self._set_init_pose()
             rospy.logwarn("Set to initial pose")
@@ -133,7 +128,6 @@ class RobotGazeboEnv(gym.Env):
         if self.reset_controls:
             self.gazebo.resetSim()
             self.gazebo.unpauseSim()
-            self.controllers_object.reset_controllers()
             self._check_all_systems_ready()
             rospy.logwarn("All systems checked")
             self.gazebo.pauseSim()

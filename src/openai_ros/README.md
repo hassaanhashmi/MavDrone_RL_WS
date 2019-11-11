@@ -1,1 +1,0 @@
-Edited version of the original OpenAI_ROS repository which can be found at https://bitbucket.org/theconstructcore/openai_ros/src/version2/

@@ -3,14 +3,13 @@
 import gym
 import numpy
 import time
-#import qlearn
 from gym import wrappers
 # ROS packages required
 import rospy
 import rospkg
 import roslaunch
-from openai_ros.start_gym_env import Start_OpenAI_ROS_Environment
-from openai_ros.roslauncher import ROSLauncher
+from gym_link.make_gym_env import GymMake
+from gym_link.roslauncher import ROSLauncher
 import subprocess
 
 if __name__ == '__main__':
@@ -19,8 +18,8 @@ if __name__ == '__main__':
     rospy.init_node('mavdrone_test_env', anonymous=True, log_level=rospy.WARN)
     rospy.logwarn("Initial state reached!!!")
     # Init OpenAI_ROS ENV
-    task_and_robot_environment_name = rospy.get_param('mav_drone/task_and_robot_environment_name')
-    env = Start_OpenAI_ROS_Environment(task_and_robot_environment_name)
+    env_id = rospy.get_param('mav_drone/task_and_robot_environment_name')
+    env = GymMake(env_id)
     rospy.loginfo("Gym environment done")
     # Set the logging system
     rospack = rospkg.RosPack()

@@ -1,18 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from gym.envs.registration import register
 from gym import envs
 
 
-def Register_OpenAI_Ros_Env(task_env, max_episode_steps_per_episode=10000):
+def Register_Gym_Env(task_env, max_episode_steps_per_episode=10000):
     """
-    Registers all the ENVS supported in OpenAI ROS. This way we can load them
-    with variable limits.
+    Register Gym environment. This way we can load them with variable limits.
     Here is where you have to PLACE YOUR NEW TASK ENV, to be registered and accesible.
     return: False if the Task_Env wasnt registered, True if it was.
     """
-
-    ###########################################################################
-    # MovingCube Task-Robot Envs
 
     result = True
 
@@ -21,7 +17,7 @@ def Register_OpenAI_Ros_Env(task_env, max_episode_steps_per_episode=10000):
 
         register(
             id=task_env,
-            entry_point='openai_ros:task_envs.mav_drone.mav_drone_follow.MavDroneFollowEnv',
+            entry_point='gym_link.mav_drone_tasks.mav_drone_follow:MavDroneFollowEnv',
             max_episode_steps=max_episode_steps_per_episode,
         )
 
